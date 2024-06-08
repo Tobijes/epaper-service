@@ -12,7 +12,7 @@ import (
 var COLOR_BLACK = color.RGBA{0x00, 0x00, 0x00, 0xff}
 var COLOR_WHITE = color.RGBA{0xff, 0xff, 0xff, 0xff}
 
-func drawBars(prices []float64, width int, height int) {
+func drawBars(prices []float64, width int, height int) image.Image {
 	// Initialize the graphic context on an RGBA image
 	canvas := image.Rect(0, 0, width, height)
 	dest := image.NewRGBA(canvas)
@@ -59,4 +59,5 @@ func drawBars(prices []float64, width int, height int) {
 
 	// Save to file
 	draw2dimg.SaveToPngFile("hello.png", dest)
+	return dest
 }

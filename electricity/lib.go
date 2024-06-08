@@ -1,8 +1,11 @@
 package electricity
 
-import "fmt"
+import (
+	"fmt"
+	"image"
+)
 
-func Generate() {
+func Generate() image.Image {
 	prices := getPrices()
 	fmt.Println("Length", len(prices))
 	for _, record := range prices {
@@ -15,5 +18,6 @@ func Generate() {
 	for i, record := range prices {
 		bars[i] = record.SpotPriceDKK + record.FeeDKK
 	}
-	drawBars(bars, 250, 122)
+	img := drawBars(bars, 250, 122)
+	return img
 }
