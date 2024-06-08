@@ -27,6 +27,7 @@ type PriceRecord struct {
 	StartTimeUTC time.Time
 	SpotPriceDKK float64
 	FeeDKK       float64
+	TotalDKK     float64
 }
 
 // https://www.energidataservice.dk/tso-electricity/Elspotprices
@@ -39,16 +40,16 @@ func getPrices() (prices []PriceRecord) {
 
 	params := url.Query()
 
-	now := time.Now().UTC()
-	startTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, time.UTC)
+	now := time.Now().In(location)
+	startTime := time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, location)
 	startTimeFormatted := startTime.Format("2006-01-02T15:04")
-	fmt.Println(startTimeFormatted)
+	// fmt.Println(startTimeFormatted)
 	params.Add("start", startTimeFormatted)
 	params.Add("filter", "{\"PriceArea\":[\"DK2\"]}")
 	params.Add("sort", "HourUTC ASC")
 
 	url.RawQuery = params.Encode()
-	fmt.Println(url)
+	// fmt.Println(url)
 	resp, err := http.Get(url.String())
 	if err != nil {
 		fmt.Println(err)
@@ -82,7 +83,8 @@ func getPrices() (prices []PriceRecord) {
 		price := record.SpotPriceDKK / 1000.0 // SpotPrice is DKK/MWh
 		price = price * 1.25                  // VAT
 		fee := computeFee(t)
-		prices[i] = PriceRecord{StartTimeUTC: t, SpotPriceDKK: price, FeeDKK: fee}
+		total := price + fee
+		prices[i] = PriceRecord{StartTimeUTC: t, SpotPriceDKK: price, FeeDKK: fee, TotalDKK: total}
 	}
 
 	return prices
@@ -118,10 +120,9 @@ var localTariffs = map[int]float64{
 
 // https://stromligning.dk/live
 func computeFee(startTime time.Time) float64 {
-	loc, _ := time.LoadLocation("Europe/Copenhagen")
 	feeState := 0.95125
 	feeSystemTariff := 0.06375
 	feeNetTariff := 0.09250
-	feeLocalTariff := localTariffs[startTime.In(loc).Hour()]
+	feeLocalTariff := localTariffs[startTime.In(location).Hour()]
 	return feeState + feeSystemTariff + feeNetTariff + feeLocalTariff
 }

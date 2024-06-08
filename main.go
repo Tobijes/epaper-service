@@ -8,10 +8,15 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/tobijes/epaper-service/electricity"
 )
 
 func main() {
+	var img image.Image = electricity.Generate()
+	// Save to file initially
+	draw2dimg.SaveToPngFile("test.png", img)
+
 	http.HandleFunc("/electricity", handleElectricity)
 
 	log.Println("Listening on 8080")
