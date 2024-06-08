@@ -29,7 +29,7 @@ type PriceRecord struct {
 	FeeDKK       float64
 }
 
-// https://api.energidataservice.dk/dataset/Elspotprices?offset=0&start=2024-06-08T00:00&filter=%7B%22PriceArea%22:[%22DK2%22]%7D&sort=HourUTC%20ASC
+// https://www.energidataservice.dk/tso-electricity/Elspotprices
 func getPrices() (prices []PriceRecord) {
 	baseUrl := "https://api.energidataservice.dk/dataset/Elspotprices"
 	url, err := url.Parse(baseUrl)
@@ -81,7 +81,8 @@ func getPrices() (prices []PriceRecord) {
 		}
 		price := record.SpotPriceDKK / 1000.0 // SpotPrice is DKK/MWh
 		price = price * 1.25                  // VAT
-		prices[i] = PriceRecord{StartTimeUTC: t, SpotPriceDKK: price}
+		fee := computeFee(t)
+		prices[i] = PriceRecord{StartTimeUTC: t, SpotPriceDKK: price, FeeDKK: fee}
 	}
 
 	return prices
@@ -116,25 +117,11 @@ var localTariffs = map[int]float64{
 }
 
 // https://stromligning.dk/live
-func addFees(prices []PriceRecord) []PriceRecord {
+func computeFee(startTime time.Time) float64 {
 	loc, _ := time.LoadLocation("Europe/Copenhagen")
-	for i, record := range prices {
-		feeState := 0.95125
-		feeSystemTariff := 0.06375
-		feeNetTariff := 0.09250
-		feeLocalTariff := localTariffs[record.StartTimeUTC.In(loc).Hour()]
-		prices[i].FeeDKK = feeState + feeSystemTariff + feeNetTariff + feeLocalTariff
-	}
-	return prices
-}
-
-func Generate() {
-	prices := getPrices()
-	fmt.Println("Length", len(prices))
-	prices = addFees(prices)
-	for _, record := range prices {
-		fmt.Printf("%+v", record)
-		fmt.Printf(" %+v", (record.FeeDKK + record.SpotPriceDKK))
-		fmt.Printf("\n")
-	}
+	feeState := 0.95125
+	feeSystemTariff := 0.06375
+	feeNetTariff := 0.09250
+	feeLocalTariff := localTariffs[startTime.In(loc).Hour()]
+	return feeState + feeSystemTariff + feeNetTariff + feeLocalTariff
 }
