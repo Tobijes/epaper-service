@@ -3,14 +3,24 @@ package main
 import (
 	"bytes"
 	"image"
+	"image/color"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
+	"github.com/disintegration/imaging"
 	"github.com/llgcode/draw2d/draw2dimg"
 	"github.com/tobijes/epaper-service/electricity"
 	"golang.org/x/image/bmp"
 )
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
+}
 
 func main() {
 	var img image.Image = electricity.Generate()
@@ -19,8 +29,9 @@ func main() {
 
 	http.HandleFunc("/electricity", handleElectricity)
 
-	log.Println("Listening on 8080")
-	err := http.ListenAndServe(":8080", nil)
+	port := getEnv("PORT", "8080")
+	log.Printf("Listening on %s \n", port)
+	err := http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe:", err)
 	}
@@ -28,6 +39,10 @@ func main() {
 
 func handleElectricity(w http.ResponseWriter, r *http.Request) {
 	var img image.Image = electricity.Generate()
+	rotate := r.URL.Query().Get("rotate")
+	if rotate == "true" {
+		img = imaging.Rotate(img, 90, color.Black)
+	}
 	writeImage(w, &img)
 }
 
